@@ -51,8 +51,17 @@ public class Controller implements Initializable {// Интерфейс дает
 
     public void sendMsg() {
         try {
-            out.writeUTF(msgField.getText());
+            String msg = msgField.getText();
+            if("/exit".equals(msg)){
+                out.writeUTF("connection with " + socket.getInetAddress() + " interrupted");
+                out.flush();
+                in.close();
+                out.close();
+                socket.close();
+            }
+            out.writeUTF(msg);
             msgField.clear();
+            msgField.requestFocus(); // после предыдущего действия запрашиваем фокус в поле msgField
         }catch (IOException e){
             Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно отправить сообщение", ButtonType.OK);
             alert.showAndWait();
