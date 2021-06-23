@@ -14,13 +14,13 @@ public class Server {
         this.port = port;
         this.clients = new ArrayList<>();
         try(ServerSocket serverSocket = new ServerSocket(8189)){
-            System.out.println("Сервер запущен на порту 8189");
+            System.out.println("Сервер запущен на порту " + port);
 
             while (true) {
                 System.out.println("Ждем нового клиента");
                 Socket socket = serverSocket.accept();
                 System.out.println("Клиент подключился");
-                subscribe(new ClientHandler(this, socket));
+                new ClientHandler(this, socket);
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -40,5 +40,14 @@ public class Server {
         for(ClientHandler clientHandler : clients){
             clientHandler.sendMessage(message);
         }
+    }
+
+    public boolean isNickBusy(String username){
+        for(ClientHandler clientHandler : clients){
+            if (clientHandler.getUsername().equals(username)){
+                return true;
+            }
+        }
+        return false;
     }
 }

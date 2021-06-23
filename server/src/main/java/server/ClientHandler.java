@@ -10,6 +10,11 @@ public class ClientHandler {
     private Socket socket; // главное что должен знать обработчик о клиенте
     private DataInputStream in;
     private DataOutputStream out;
+    private String username;
+
+    public String getUsername(){
+        return username;
+    }
 
     public ClientHandler(Server server, Socket socket) throws IOException {
         this.server = server;
@@ -19,23 +24,35 @@ public class ClientHandler {
 
         new Thread(()-> {
             try {
+                // authorization loop
+                while (true){
+                    String msg = in.readUTF();
+                    if(msg.startsWith("/login ")){
+                        String usernameFromLogin = msg.split("\\s")[1];
+                        if(server.isNickBusy(usernameFromLogin)) {
+                            sendMessage("/login_failed Current nickname is already used");
+                            continue;
+                        }
+                        username = usernameFromLogin;
+                        sendMessage("/login_ok " + username);
+                        server.subscribe(this);
+                        break;
+                    }
+                }
+                // chatting with client loop
                 while(true){
-                    String msg = null;
-                        msg = in.readUTF(); // если клиент остановит соединение, сервер  все равно будет пытаться
-                    // отсюда что-то вычитать. Чтобы этого не происходило try выносим за цикл. Тогда выброшенное исключение
-                    // будет обрабатываться за пределами цикла, а значит из цикла мы выйдем.
-  //                      sendMessage("Echo: " + msg);
-                    server.broadcastMessage(msg);
+                    String msg = in.readUTF();
+                    server.broadcastMessage(username + ": " + msg);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }finally {
-                disconnect(socket);
+                disconnect();
             }
         }).start();
     }
 
-    private void disconnect(Socket socket) {
+    private void disconnect() {
         server.unsubscribe(this);
         if (socket != null) {
             try {
