@@ -18,7 +18,9 @@ public class Controller implements Initializable {// Интерфейс дает
     @FXML
     ListView<String> clientsList;
     @FXML
-    TextField msgField, usernameField;
+    TextField msgField, loginField;
+    @FXML
+    PasswordField passwordField;
     @FXML
     HBox msgPanel, loginPanel;
 
@@ -29,21 +31,13 @@ public class Controller implements Initializable {// Интерфейс дает
 
     public void setUsername (String username){
         this.username = username;
-        if(username != null) {
-            loginPanel.setVisible(false);
-            loginPanel.setManaged(false);
-            msgPanel.setVisible(true);
-            msgPanel.setManaged(true);
-            clientsList.setVisible(true);
-            clientsList.setManaged(true);
-        }else {
-            loginPanel.setVisible(true);
-            loginPanel.setManaged(true);
-            msgPanel.setVisible(false);
-            msgPanel.setManaged(false);
-            clientsList.setVisible(false);
-            clientsList.setManaged(false);
-        }
+        boolean usernameIsNull = username == null;
+            loginPanel.setVisible(usernameIsNull);
+            loginPanel.setManaged(usernameIsNull);
+            msgPanel.setVisible(!usernameIsNull);
+            msgPanel.setManaged(!usernameIsNull);
+            clientsList.setVisible(!usernameIsNull);
+            clientsList.setManaged(!usernameIsNull);
     }
 
     @Override
@@ -52,16 +46,15 @@ public class Controller implements Initializable {// Интерфейс дает
     }
 
     public void login(){
+        if(loginField.getText().isEmpty()){
+            showErrorAlert("Имя пользователя не может быть пустым");
+            return;
+        }
         if(socket == null || socket.isClosed()){
             connect();
         }
-        if(usernameField.getText().isEmpty()){
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Имя пользователя не может быть пустым", ButtonType.OK);
-            alert.showAndWait();
-            return;
-        }
         try {
-            out.writeUTF("/login " + usernameField.getText());
+            out.writeUTF("/login " + loginField.getText() + " " + passwordField.getText());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -115,8 +108,7 @@ public class Controller implements Initializable {// Интерфейс дает
             });
             t.start();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно подключиться к серверу", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Невозможно подключиться к серверу");
         }
     }
 
@@ -126,8 +118,7 @@ public class Controller implements Initializable {// Интерфейс дает
             msgField.clear();
             msgField.requestFocus(); // после предыдущего действия запрашиваем фокус в поле msgField
         }catch (IOException e){
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно отправить сообщение", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Невозможно отправить сообщение");
         }
     }
 
@@ -140,5 +131,13 @@ public class Controller implements Initializable {// Интерфейс дает
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void showErrorAlert(String message){
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(message);
+        alert.setTitle("Fisunov Chat FX");
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 }
