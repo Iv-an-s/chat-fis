@@ -1,20 +1,22 @@
 package client;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.fxml.Initializable;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.URL;
+import java.util.ResourceBundle;
 
-public class Controller /*implements Initializable*/ {
-                                                // Интерфейс дает возможность проводить подготовительные действия,
-                                                  // проводить преднастройку контроллера
+public class Controller implements Initializable {// Интерфейс дает возможность проводить подготовительные действия,
+                                                // проводить преднастройку контроллера
     @FXML
     TextArea msgArea;
+    @FXML
+    ListView<String> clientsList;
     @FXML
     TextField msgField, usernameField;
     @FXML
@@ -32,18 +34,22 @@ public class Controller /*implements Initializable*/ {
             loginPanel.setManaged(false);
             msgPanel.setVisible(true);
             msgPanel.setManaged(true);
+            clientsList.setVisible(true);
+            clientsList.setManaged(true);
         }else {
             loginPanel.setVisible(true);
             loginPanel.setManaged(true);
             msgPanel.setVisible(false);
             msgPanel.setManaged(false);
+            clientsList.setVisible(false);
+            clientsList.setManaged(false);
         }
     }
 
-//    @Override
-//    public void initialize(URL location, ResourceBundle resources) {
-//
-//    }
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        setUsername(null);
+    }
 
     public void login(){
         if(socket == null || socket.isClosed()){
@@ -84,6 +90,21 @@ public class Controller /*implements Initializable*/ {
                     // Цикл общения
                     while (true){
                         String msg = in.readUTF();
+                        if(msg.startsWith("/")){
+                            if(msg.startsWith("/clients_list ")){
+                                String[] tokens = msg.split("\\s");
+                                //for (int i = 0; i < tokens.length; i++) {
+                                    //System.out.println(tokens[i]);
+                                Platform.runLater(()->{ //передаем задачу в поток JavaFX. Если пытаться это делать из текущего треда напрямую - будут ошибки
+                                    // В поток JavaFX из других потоков не лезем. Предаем задачи через Platform
+                                    clientsList.getItems().clear(); // getItems - запрос списка элементов, которые есть у view
+                                    for (int i = 1; i < tokens.length ; i++) {
+                                        clientsList.getItems().add(tokens[i]);
+                                    }
+                                });
+                            }
+                            continue;
+                        }
                         msgArea.appendText(msg + "\n");
                     }
                 }catch (IOException e){

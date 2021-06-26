@@ -12,12 +12,13 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("/window.fxml"));
         primaryStage.setTitle("Fisunov chat");
-        primaryStage.setScene(new Scene(root, 400, 400));
+        primaryStage.setScene(new Scene(root, 600, 400));
         primaryStage.show();
     }
 
 
     public static void main(String[] args) {
-        launch(args);
+      //  System.out.println(System.getenv().get("USERNAME")); // getenv - получаем переменные среды (мапа)
+        launch(args); // начиная с launch  все оборачивается в поток JavaFX
     }
 }

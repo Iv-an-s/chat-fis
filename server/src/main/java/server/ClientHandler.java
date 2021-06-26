@@ -29,7 +29,7 @@ public class ClientHandler {
                     String msg = in.readUTF();
                     if(msg.startsWith("/login ")){
                         String usernameFromLogin = msg.split("\\s")[1];
-                        if(server.isNickBusy(usernameFromLogin)) {
+                        if(server.isUserOnline(usernameFromLogin)) {
                             sendMessage("/login_failed Current nickname is already used");
                             continue;
                         }
@@ -42,20 +42,9 @@ public class ClientHandler {
                 // chatting with client loop
                 while(true){
                     String msg = in.readUTF();
-
-                    if(msg.equals("/who_am_i")){
-                        sendMessage(username);
+                    if (msg.startsWith("/")){
+                        executeCommand(msg);
                         continue;
-                    }
-
-                    if(msg.startsWith("/w ")){
-                        server.sendPrivateMessage(msg.split("\\s", 3)[1], msg.split("\\s", 3)[2]);
-                        continue;
-                    }
-
-                    if(msg.equals("/exit")){
-                        break;
-                        //disconnect();
                     }
 
                     server.broadcastMessage(username + ": " + msg);
@@ -68,7 +57,24 @@ public class ClientHandler {
         }).start();
     }
 
-    private void disconnect() {
+    private void executeCommand(String cmd){
+        // /w Bob Hello, Bob!!!
+        if(cmd.startsWith("/w ")){
+            String[] tokens = cmd.split("\\s", 3);
+            server.sendPrivateMessage(this, tokens[1], tokens[2]);
+            return;
+        }
+
+        if(cmd.equals("/who_am_i")){
+            server.sendPrivateMessage(this, username, username);
+            return;
+        }
+//        if(cmd.equals("/exit")){
+//           disconnect();
+//        }
+    }
+
+    private void disconnect(){
         server.unsubscribe(this);
         if (socket != null) {
             try {
@@ -79,7 +85,12 @@ public class ClientHandler {
         }
     }
 
-    public void sendMessage(String message) throws IOException {
-        out.writeUTF(message);
+    public void sendMessage(String message) {
+        try {
+            out.writeUTF(message);
+        } catch (IOException e) {
+            disconnect();
+//            e.printStackTrace();
+        }
     }
 }
