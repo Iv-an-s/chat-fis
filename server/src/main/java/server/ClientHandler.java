@@ -42,6 +42,22 @@ public class ClientHandler {
                 // chatting with client loop
                 while(true){
                     String msg = in.readUTF();
+
+                    if(msg.equals("/who_am_i")){
+                        sendMessage(username);
+                        continue;
+                    }
+
+                    if(msg.startsWith("/w ")){
+                        server.sendPrivateMessage(msg.split("\\s", 3)[1], msg.split("\\s", 3)[2]);
+                        continue;
+                    }
+
+                    if(msg.equals("/exit")){
+                        break;
+                        //disconnect();
+                    }
+
                     server.broadcastMessage(username + ": " + msg);
                 }
             } catch (IOException e) {
