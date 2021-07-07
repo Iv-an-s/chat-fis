@@ -39,7 +39,7 @@ public class ClientHandler {
 
                         String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
                         if (userNickname == null){
-                            sendMessage("login_failed Введен некорректный логин/пароль");
+                            sendMessage("/login_failed Введен некорректный логин/пароль");
                             continue;
                         }
                         if(server.isUserOnline(userNickname)) {
@@ -89,7 +89,7 @@ public class ClientHandler {
                 return;
             }
             String newNickname = tokens[1];
-            if (server.isUserOnline(newNickname)){
+            if (server.getAuthenticationProvider().isNickBusy(newNickname)){
                 sendMessage("Server: This nickname is already used");
                 return;
             }
@@ -97,16 +97,7 @@ public class ClientHandler {
             this.username = newNickname;
             sendMessage("Server: Вы изменили никнейм на " + newNickname);
             server.broadcastClientsList();
-
         }
-
-        if(cmd.equals("/who_am_i")){
-            server.sendPrivateMessage(this, username, username);
-            return;
-        }
-//        if(cmd.equals("/exit")){
-//           disconnect();
-//        }
     }
 
     private void disconnect(){
