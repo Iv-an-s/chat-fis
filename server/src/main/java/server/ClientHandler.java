@@ -29,7 +29,7 @@ public class ClientHandler {
                     String msg = in.readUTF();
                     if(msg.startsWith("/login ")){
                         // /login Bob 100xyz
-                        String[] tokens = msg.split("\\s");
+                        String[] tokens = msg.split("\\s+");
                         if (tokens.length != 3){
                             sendMessage("/login_failed Введите имя пользователя и пароль");
                             continue;
@@ -47,7 +47,7 @@ public class ClientHandler {
                             continue;
                         }
                         username = userNickname;
-                        sendMessage("/login_ok " + username);
+                        sendMessage("/login_ok " + login + " " + username);
                         server.subscribe(this);
                         break;
                     }

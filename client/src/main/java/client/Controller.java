@@ -7,7 +7,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
 import java.io.*;
-import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -24,10 +23,9 @@ public class Controller implements Initializable {// Интерфейс дает
     @FXML
     HBox msgPanel, loginPanel;
 
-    private Socket socket;
-    private DataInputStream in;
-    private DataOutputStream out;
+    private Network network;
     private String username;
+    private HistoryManager historyManager;
 
     public void setUsername (String username){
         this.username = username;
@@ -43,6 +41,60 @@ public class Controller implements Initializable {// Интерфейс дает
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setUsername(null);
+        network = new Network();
+
+        network.setOnAuthFailedCallback(new Callback() {
+            @Override
+            public void callback(Object... args) {
+                String cause = (String) args[0];
+                msgArea.appendText(cause + "\n");
+            }
+        });
+
+        network.setOnAuthOkCallback(new Callback() {
+            @Override
+            public void callback(Object... args) {
+                String msg = (String)args[0];
+                setUsername(msg.split("\\s")[2]);
+                historyManager.init(msg.split("\\s")[1]);
+                msgArea.clear();
+                msgArea.appendText(historyManager.load());
+            }
+        });
+
+        network.setOnMessageReceivedCallback(new Callback() {
+           @Override
+           public void callback(Object... args) {
+                String msg = (String) args[0];
+                if (msg.startsWith("/")) {
+                    if (msg.startsWith("/clients_list ")) {
+                        // /clients_list Bob Max Jack
+                        String[] tokens = msg.split("\\s");
+                        Platform.runLater(() -> { //передаем задачу в поток JavaFX. Если пытаться это делать из текущего треда напрямую - будут ошибки
+                        // В поток JavaFX из других потоков не лезем. Предаем задачи через Platform
+                            clientsList.getItems().clear(); // getItems - запрос списка элементов, которые есть у view
+                            for (int i = 1; i < tokens.length; i++) {
+                                clientsList.getItems().add(tokens[i]);
+                        }
+                    });
+                }
+                return;
+            }
+            historyManager.write(msg + "\n");
+            msgArea.appendText(msg + "\n");
+        }
+        });
+
+        network.setOnDisconnectCallback(new Callback() {
+            @Override
+            public void callback(Object... args) {
+                // сбрасываем имя пользователя, и забываем про его историю
+                setUsername(null);
+                historyManager.close();
+            }
+        });
+
+        historyManager = new HistoryManager();
     }
 
     public void login(){
@@ -50,86 +102,31 @@ public class Controller implements Initializable {// Интерфейс дает
             showErrorAlert("Имя пользователя не может быть пустым");
             return;
         }
-        if(socket == null || socket.isClosed()){
-            connect();
-        }
-        try {
-            out.writeUTF("/login " + loginField.getText() + " " + passwordField.getText());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public void connect(){
-        try {
-            socket = new Socket("localhost", 8189 );
-            out = new DataOutputStream(socket.getOutputStream());
-            in = new DataInputStream(socket.getInputStream());
+        if (!network.isConnected()){
+            try {
+                network.connect(8189);
+            } catch (IOException e) {
+                showErrorAlert("Невозможно подключиться к серверу на порт: " + 8189);
+                return;
+            }
+        }
 
-            Thread t = new Thread(() -> {
-                try {
-                    // Цикл авторизации
-                    while (true) {
-                        String msg = in.readUTF();
-                        if(msg.startsWith("/login_ok ")){
-                            setUsername(msg.split("\\s")[1]);
-                            break;
-                        }
-                        if(msg.startsWith("/login_failed ")){
-                            String cause = msg.split("\\s", 2)[1];
-                            msgArea.appendText(cause + "\n");
-                        }
-                    }
-                    // Цикл общения
-                    while (true){
-                        String msg = in.readUTF();
-                        if(msg.startsWith("/")){
-                            if(msg.startsWith("/clients_list ")){
-                                String[] tokens = msg.split("\\s");
-                                //for (int i = 0; i < tokens.length; i++) {
-                                    //System.out.println(tokens[i]);
-                                Platform.runLater(()->{ //передаем задачу в поток JavaFX. Если пытаться это делать из текущего треда напрямую - будут ошибки
-                                    // В поток JavaFX из других потоков не лезем. Предаем задачи через Platform
-                                    clientsList.getItems().clear(); // getItems - запрос списка элементов, которые есть у view
-                                    for (int i = 1; i < tokens.length ; i++) {
-                                        clientsList.getItems().add(tokens[i]);
-                                    }
-                                });
-                            }
-                            continue;
-                        }
-                        msgArea.appendText(msg + "\n");
-                    }
-                }catch (IOException e){
-                    e.printStackTrace();
-                }finally {
-                    disconnect();
-                }
-            });
-            t.start();
+        try {
+            network.tryToLogin(loginField.getText(), passwordField.getText());
         } catch (IOException e) {
-            showErrorAlert("Невозможно подключиться к серверу");
+            showErrorAlert("Невозможно отправить данные пользователя");
+            return;
         }
     }
 
     public void sendMsg() {
         try {
-            out.writeUTF(msgField.getText());
+            network.sendMessage(msgField.getText());
             msgField.clear();
             msgField.requestFocus(); // после предыдущего действия запрашиваем фокус в поле msgField
         }catch (IOException e){
             showErrorAlert("Невозможно отправить сообщение");
-        }
-    }
-
-    private void disconnect(){
-        setUsername(null);
-        try {
-            if(socket!=null){
-            socket.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

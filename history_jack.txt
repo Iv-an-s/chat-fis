@@ -1,0 +1,5 @@
+Клиент Jack вошел в чат
+Клиент John вошел в чат
+John: adfadf
+Jack: kjahgklajhfgjkahsg
+Client John left this chat
