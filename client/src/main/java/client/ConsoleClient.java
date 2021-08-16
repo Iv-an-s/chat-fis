@@ -10,12 +10,12 @@ public class ConsoleClient {
         network.connect(8189);
 
         network.setOnMessageReceivedCallback(new Callback() {
-             @Override
-             public void callback(Object... args) {
-                 String message = (String)args[0];
-                 System.out.println(message);
-             }
-         });
+            @Override
+            public void callback(Object... args) {
+                String message = (String) args[0];
+                System.out.println(message);
+            }
+        });
 
         System.out.println("ВВедите /login login password");
         String loginLine = sc.nextLine();
@@ -23,7 +23,7 @@ public class ConsoleClient {
         String password = loginLine.split("\\s+")[2];
         network.tryToLogin(login, password);
 
-        while (true){
+        while (true) {
             String message = sc.nextLine();
             network.sendMessage(message);
         }

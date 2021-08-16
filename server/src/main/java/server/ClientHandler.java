@@ -6,13 +6,13 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class ClientHandler {
-    private Server server;
-    private Socket socket; // главное что должен знать обработчик о клиенте
-    private DataInputStream in;
-    private DataOutputStream out;
+    private final Server server;
+    private final Socket socket; // главное что должен знать обработчик о клиенте
+    private final DataInputStream in;
+    private final DataOutputStream out;
     private String username;
 
-    public String getUsername(){
+    public String getUsername() {
         return username;
     }
 
@@ -22,15 +22,15 @@ public class ClientHandler {
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
 
-        new Thread(()-> {
+        new Thread(() -> {
             try {
                 // authorization loop
-                while (true){
+                while (true) {
                     String msg = in.readUTF();
-                    if(msg.startsWith("/login ")){
+                    if (msg.startsWith("/login ")) {
                         // /login Bob 100xyz
                         String[] tokens = msg.split("\\s+");
-                        if (tokens.length != 3){
+                        if (tokens.length != 3) {
                             sendMessage("/login_failed Введите имя пользователя и пароль");
                             continue;
                         }
@@ -38,11 +38,11 @@ public class ClientHandler {
                         String password = tokens[2];
 
                         String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
-                        if (userNickname == null){
+                        if (userNickname == null) {
                             sendMessage("/login_failed Введен некорректный логин/пароль");
                             continue;
                         }
-                        if(server.isUserOnline(userNickname)) {
+                        if (server.isUserOnline(userNickname)) {
                             sendMessage("/login_failed Учетная запись уже используется");
                             continue;
                         }
@@ -53,9 +53,9 @@ public class ClientHandler {
                     }
                 }
                 // chatting with client loop
-                while(true){
+                while (true) {
                     String msg = in.readUTF();
-                    if (msg.startsWith("/")){
+                    if (msg.startsWith("/")) {
                         executeCommand(msg);
                         continue;
                     }
@@ -64,17 +64,17 @@ public class ClientHandler {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-            }finally {
+            } finally {
                 disconnect();
             }
         }).start();
     }
 
-    private void executeCommand(String cmd){
+    private void executeCommand(String cmd) {
         // /w Bob Hello, Bob!!!
-        if(cmd.startsWith("/w ")){
+        if (cmd.startsWith("/w ")) {
             String[] tokens = cmd.split("\\s+", 3);
-            if (tokens.length!= 3){
+            if (tokens.length != 3) {
                 sendMessage("Server: Incorrect command!!!");
                 return;
             }
@@ -82,14 +82,14 @@ public class ClientHandler {
             return;
         }
         // /change_nick myNewNickName
-        if(cmd.startsWith("/change_nick ")){
+        if (cmd.startsWith("/change_nick ")) {
             String[] tokens = cmd.split("\\s+");
-            if(tokens.length != 2){
+            if (tokens.length != 2) {
                 sendMessage("Server: Incorrect command!!!");
                 return;
             }
             String newNickname = tokens[1];
-            if (server.getAuthenticationProvider().isNickBusy(newNickname)){
+            if (server.getAuthenticationProvider().isNickBusy(newNickname)) {
                 sendMessage("Server: This nickname is already used");
                 return;
             }
@@ -100,7 +100,7 @@ public class ClientHandler {
         }
     }
 
-    private void disconnect(){
+    private void disconnect() {
         server.unsubscribe(this);
         if (socket != null) {
             try {
